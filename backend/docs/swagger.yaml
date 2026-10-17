@@ -1,0 +1,683 @@
+basePath: /
+definitions:
+  github_com_youpass_backend_pkg_response.APIError:
+    properties:
+      code:
+        type: string
+      message:
+        type: string
+    type: object
+  github_com_youpass_backend_pkg_response.Envelope:
+    properties:
+      data: {}
+      error:
+        $ref: '#/definitions/github_com_youpass_backend_pkg_response.APIError'
+      requestId:
+        type: string
+      success:
+        type: boolean
+    type: object
+  internal_auth.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  internal_auth.LoginResponse:
+    properties:
+      accessToken:
+        type: string
+      expiresIn:
+        type: integer
+      user:
+        $ref: '#/definitions/internal_auth.UserDTO'
+    type: object
+  internal_auth.RegisterRequest:
+    properties:
+      email:
+        type: string
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+      password:
+        maxLength: 72
+        minLength: 8
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
+  internal_auth.UserDTO:
+    properties:
+      createdAt:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      role:
+        type: string
+    type: object
+  internal_share.PublicShareDTO:
+    properties:
+      code:
+        type: string
+      content:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
+    type: object
+  internal_share.ShareLinkDTO:
+    properties:
+      code:
+        type: string
+      createdAt:
+        type: string
+      expiresAt:
+        type: string
+      id:
+        type: string
+      status:
+        type: string
+      submissionId:
+        type: string
+      updatedAt:
+        type: string
+      url:
+        type: string
+    type: object
+  internal_share.UpdateShareLinkRequest:
+    properties:
+      status:
+        enum:
+        - ACTIVE
+        - DISABLED
+        type: string
+    required:
+    - status
+    type: object
+  internal_submissions.CreateRequest:
+    properties:
+      content:
+        type: string
+      title:
+        maxLength: 200
+        minLength: 1
+        type: string
+    required:
+    - content
+    - title
+    type: object
+  internal_submissions.Submission:
+    properties:
+      content:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      ownerId:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  internal_tracking.PostViewRequest:
+    properties:
+      viewId:
+        type: string
+    required:
+    - viewId
+    type: object
+  internal_tracking.StatsDTO:
+    properties:
+      code:
+        type: string
+      lastViewedAt:
+        type: string
+      totalViews:
+        type: integer
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: YouPass Technical Assignment backend API (URL Shortener + Seamless
+    Authentication).
+  termsOfService: https://youpass.vn/terms
+  title: YouPass API
+  version: "1.0"
+paths:
+  /api/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Verifies credentials and issues an access token. The refresh token
+        is set as an HttpOnly cookie.
+      parameters:
+      - description: Login payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_auth.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_auth.LoginResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+      summary: Login
+      tags:
+      - auth
+  /api/auth/logout:
+    post:
+      description: Revokes the current session and clears the refresh-token cookie.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+      summary: Logout
+      tags:
+      - auth
+  /api/auth/me:
+    get:
+      description: Returns the profile of the authenticated user.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_auth.UserDTO'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: Get current user
+      tags:
+      - auth
+  /api/auth/refresh:
+    post:
+      description: Rotates the refresh token from the HttpOnly cookie and returns
+        a new access token.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_auth.LoginResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+      summary: Refresh access token
+      tags:
+      - auth
+  /api/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a learner account (demo endpoint).
+      parameters:
+      - description: Registration payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_auth.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_auth.UserDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+      summary: Register a new account
+      tags:
+      - auth
+  /api/public/shares/{code}:
+    get:
+      description: Returns the submission content for a publicly accessible share
+        link (authoritative access check).
+      parameters:
+      - description: Short code
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_share.PublicShareDTO'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+      summary: Get shared submission
+      tags:
+      - share
+  /api/public/shares/{code}/views:
+    post:
+      consumes:
+      - application/json
+      description: Records a view event for a publicly accessible share link. The
+        viewId is idempotent across retries.
+      parameters:
+      - description: Short code
+        in: path
+        name: code
+        required: true
+        type: string
+      - description: View event payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_tracking.PostViewRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+      summary: Record a view
+      tags:
+      - tracking
+  /api/share-links:
+    get:
+      description: Lists the authenticated user's share links.
+      parameters:
+      - default: 20
+        description: Limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/internal_share.ShareLinkDTO'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: List share links
+      tags:
+      - share
+  /api/share-links/{code}:
+    delete:
+      description: Soft-deletes a share link. The short code is never reused.
+      parameters:
+      - description: Short code
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: Delete a share link
+      tags:
+      - share
+    get:
+      description: Returns the owner-facing detail of a share link.
+      parameters:
+      - description: Short code
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_share.ShareLinkDTO'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: Get a share link
+      tags:
+      - share
+    patch:
+      consumes:
+      - application/json
+      description: Toggles a share link between ACTIVE and DISABLED. Deleted links
+        cannot be reactivated.
+      parameters:
+      - description: Short code
+        in: path
+        name: code
+        required: true
+        type: string
+      - description: New status
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_share.UpdateShareLinkRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_share.ShareLinkDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: Enable/disable a share link
+      tags:
+      - share
+  /api/share-links/{code}/stats:
+    get:
+      description: Returns view statistics for a share link owned by the authenticated
+        user.
+      parameters:
+      - description: Short code
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_tracking.StatsDTO'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: Get share-link statistics
+      tags:
+      - tracking
+  /api/submissions:
+    post:
+      consumes:
+      - application/json
+      description: Creates a submission owned by the authenticated user (demo module).
+      parameters:
+      - description: Submission payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_submissions.CreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_submissions.Submission'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: Create a submission
+      tags:
+      - submissions
+  /api/submissions/{id}/share:
+    post:
+      description: Creates a short link for a submission owned by the authenticated
+        user. Returns the existing ACTIVE link when one already exists.
+      parameters:
+      - description: Submission ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+            - properties:
+                data:
+                  $ref: '#/definitions/internal_share.ShareLinkDTO'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_youpass_backend_pkg_response.Envelope'
+      security:
+      - BearerAuth: []
+      summary: Create a share link
+      tags:
+      - share
+  /s/{code}:
+    get:
+      description: Resolves a short code and redirects to the shared submission page
+        (HTTP 302). Not wrapped in the JSON envelope.
+      parameters:
+      - description: Short code
+        in: path
+        name: code
+        required: true
+        type: string
+      responses:
+        "302":
+          description: Found
+        "403":
+          description: Forbidden
+        "404":
+          description: Not Found
+      summary: Open a short link
+      tags:
+      - share
+schemes:
+- http
+- https
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Go
+backend/bin/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Docker
+*.pid
